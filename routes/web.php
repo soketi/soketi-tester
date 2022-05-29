@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\BroadcastController;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -14,22 +16,19 @@ use Inertia\Inertia;
 | contains the "web" middleware group. Now create something great!
 |
 */
-
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/', fn () => inertia('Dashboard', [
+        'users' => [
+            ['user_id' => 'xxxxx-1', 'user_info' => ['id' => 'xxxxx-1', 'name' => 'Alice']],
+            ['user_id' => 'xxxxx-2', 'user_info' => ['id' => 'xxxxx-2', 'name' => 'Bob']],
+            ['user_id' => 'xxxxx-3', 'user_info' => ['id' => 'xxxxx-3', 'name' => 'Charlie']],
+        ],
+    ]))->name('dashboard');
+
+    Route::post('/authorize-channel', [BroadcastController::class, 'authorizeChannel'])->name('auth-channel');
+    Route::post('/broadcast', [BroadcastController::class, 'broadcast'])->name('broadcast');
 });

@@ -24,13 +24,16 @@
         "eslint": "^8.16.0",
         "eslint-config-alloy": "^4.5.1",
         "eslint-plugin-vue": "^9.0.1",
+        "laravel-echo": "^1.11.7",
         "laravel-mix": "^6.0.6",
         "lodash": "^4.17.19",
         "postcss": "^8.1.14",
         "postcss-import": "^14.0.2",
+        "pusher-js": "^7.1.0-beta",
         "tailwindcss": "^3.0.0",
         "vue": "^3.2.31",
         "vue-eslint-parser": "^9.0.2",
-        "vue-loader": "^17.0.0"
+        "vue-loader": "^17.0.0",
+        "vue3-ace-editor": "^2.2.2"
     }
 }
