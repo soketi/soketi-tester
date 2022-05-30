@@ -72,8 +72,10 @@
                                         Resubscribe
                                     </button>
                                     <send-message-modal
+                                        :connection="connection"
                                         :channel="channelName"
                                         :app="app"
+                                        @on-client-message="onClientMessage"
                                     >
                                         <button class="underline ml-2">
                                             Send message
@@ -261,6 +263,10 @@ export default defineComponent({
 
             this.unsubscribeFromChannel(connection, channelName);
             this.subscribeToChannel(connection);
+        },
+
+        onClientMessage({ connection, channel, event, message }) {
+            connection.pusher.channel(channel).trigger(`client-${event}`, JSON.parse(message));
         },
 
         isPresenceChannel(channelName) {

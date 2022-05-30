@@ -43,6 +43,23 @@
                     />
                 </div>
 
+                <div class="block mt-4">
+                    <label class="flex items-center">
+                        <jet-checkbox v-model:checked="sendAsClientMessage"/>
+                        <span class="ml-2 text-sm text-gray-600">Send as client event</span>
+                    </label>
+                </div>
+
+                <div
+                    v-if="!sendAsClientMessage"
+                    class="block mt-4"
+                >
+                    <label class="flex items-center">
+                        <jet-checkbox v-model:checked="sendToOthers"/>
+                        <span class="ml-2 text-sm text-gray-600">Broadcast to others</span>
+                    </label>
+                </div>
+
                 <div class="mt-4">
                     <v-ace-editor
                         v-model:value="form.message"
@@ -78,6 +95,7 @@
 <script>
 import { defineComponent } from 'vue';
 import JetButton from '@/Jetstream/Button';
+import JetCheckbox from '@/Jetstream/Checkbox';
 import JetDialogModal from '@/Jetstream/DialogModal';
 import JetInput from '@/Jetstream/Input';
 import JetInputError from '@/Jetstream/InputError';
@@ -88,6 +106,7 @@ import { VAceEditor } from 'vue3-ace-editor';
 export default defineComponent({
     components: {
         JetButton,
+        JetCheckbox,
         JetDialogModal,
         JetInput,
         JetInputError,
@@ -96,9 +115,14 @@ export default defineComponent({
         VAceEditor,
     },
 
+    emits: ['onClientMessage'],
+
     props: {
         classes: {
             default: ['inline-block'],
+        },
+        connection: {
+            default: () => ({}),
         },
         channel: {
             default: null,
@@ -118,11 +142,14 @@ export default defineComponent({
     data() {
         return {
             showModal: false,
+            sendAsClientMessage: false,
+            sendToOthers: false,
             form: this.$inertia.form({
                 channel: '',
                 event: '',
                 message: '{}',
                 app: JSON.stringify(this.app),
+                socket_id: '',
             }),
         };
     },
@@ -139,11 +166,36 @@ export default defineComponent({
         },
 
         sendMessage() {
-            this.form.post(route('broadcast'), {
-                onSuccess: () => {
-                    this.closeModal();
-                },
+            if (this.sendAsClientMessage) {
+                this.$emit('onClientMessage', {
+                    ...this.form.data(),
+                    connection: this.connection,
+                });
+
+                this.closeModal();
+
+                return;
+            }
+
+            axios.post(route('broadcast'), this.form.data()).then(() => {
+                this.closeModal();
             });
+        },
+    },
+
+    watch: {
+        sendAsClientMessage(newValue) {
+            if (newValue === true) {
+                this.sendToOthers = false;
+                this.form.socket_id = '';
+            }
+        },
+
+        sendToOthers(newValue) {
+            if (newValue === true) {
+                this.sendAsClientMessage = false;
+                this.form.socket_id = this.connection.pusher.connection.socket_id;
+            }
         },
     },
 });
