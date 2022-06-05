@@ -20,7 +20,7 @@
                         v-model:value="message"
                         lang="json"
                         theme="chrome"
-                        style="height: 500px"
+                        style="height: 300px"
                         :readonly="true"
                         :options="{ useWorker: true }"
                     />

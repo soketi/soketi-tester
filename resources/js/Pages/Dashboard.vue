@@ -4,6 +4,17 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ connections.length }} {{ connections.length === 1 ? 'connection' : 'connections' }}
             </h2>
+            <div>
+                <api-playground-modal
+                    method="GET"
+                    path="/channels"
+                    :app="app"
+                >
+                    <button class="underline">
+                        Open API Playground
+                    </button>
+                </api-playground-modal>
+            </div>
         </template>
 
         <div class="py-12 sm:px-6 lg:px-8 space-y-3">
@@ -113,6 +124,7 @@
                 </div>
             </div>
 
+            <!-- NEW CONNECTIONS -->
             <div class="flex space-x-4 divide-x-4 divide-solid">
                 <jet-button @click="newConnection()">New connection</jet-button>
                 <div class="flex space-x-2 pl-4">
@@ -123,12 +135,14 @@
                     <jet-button @click="newConnection(true)">New connection (signin)</jet-button>
                 </div>
             </div>
+            <!-- NEW CONNECTIONS -->
         </div>
     </AppLayout>
 </template>
 
 <script>
 import { defineComponent } from 'vue';
+import ApiPlaygroundModal from '@/Modals/ApiPlaygroundModal';
 import AppLayout from '@/Layouts/AppLayout';
 import JetButton from '@/Jetstream/Button';
 import JetDangerButton from '@/Jetstream/DangerButton';
@@ -140,6 +154,7 @@ import SendMessageModal from '@/Modals/SendMessageModal';
 
 export default defineComponent({
     components: {
+        ApiPlaygroundModal,
         AppLayout,
         JetButton,
         JetDangerButton,

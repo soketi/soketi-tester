@@ -106,6 +106,7 @@ class BroadcastController extends Controller
             'app' => ['required', 'json'],
             'method' => ['required', 'string', 'in:GET,POST,PUT,PATCH,DELETE'],
             'path' => ['required', 'string'],
+            'payload' => ['required_unless:method,GET'],
             'parameters' => ['nullable', 'array'],
             'parameters.*.name' => ['required', 'string'],
             'parameters.*.value' => ['required', 'string'],
@@ -115,9 +116,13 @@ class BroadcastController extends Controller
             return [$param['name'] => $param['value']];
         })->toArray();
 
+        $request->payload = is_string($request->payload)
+            ? $request->payload
+            : json_encode($request->payload);
+
         $arguments = $request->method === 'GET'
             ? [$request->path, $request->params, true]
-            : [$request->path, $request->body, $request->params];
+            : [$request->path, $request->payload, $request->params];
 
         try {
             $response = $this->pusher(json_decode($request->app, true))->{strtolower($request->method)}(
@@ -126,7 +131,7 @@ class BroadcastController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'exception' => $e,
+                'exception' => (string) $e,
             ]);
         }
 

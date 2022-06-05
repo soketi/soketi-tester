@@ -10,84 +10,86 @@
         @close="closeModal"
     >
         <template #title>
-            Send a message
+            API Playground
         </template>
 
         <template #content>
-            <form @submit.prevent="sendMessage">
+            <form @submit.prevent="sendRequest">
                 <div class="mt-4">
                     <jet-label
-                        for="channel"
-                        value="Channel"
+                        for="path"
+                        value="Relative app path"
                     />
                     <jet-input
-                        id="channel"
-                        v-model="form.channel"
+                        id="path"
+                        v-model="form.path"
                         type="text"
                         class="w-full mt-1 block"
-                        placeholder="private-room.1"
-                        @keyup.enter="sendMessage"
+                        placeholder="/chanenls"
+                        @keyup.enter="sendRequest"
                     />
                     <jet-input-error
-                        :message="form.errors.channel"
+                        :message="form.errors.path"
                         class="mt-2"
                     />
                 </div>
 
                 <div class="mt-4">
                     <jet-label
-                        for="event_name"
-                        value="Event name"
+                        for="method"
+                        value="HTTP Method"
                     />
-                    <jet-input
-                        id="event_name"
-                        v-model="form.event"
-                        type="text"
+                    <jet-select
+                        id="method"
+                        v-model="form.method"
                         class="w-full mt-1 block"
-                        placeholder="my:event"
-                        @keyup.enter="sendMessage"
+                        :options="['GET', 'POST'].map(method => ({ label: method, value: method }))"
                     />
                     <jet-input-error
-                        :message="form.errors.event"
+                        :message="form.errors.method"
                         class="mt-2"
                     />
-                </div>
-
-                <div class="block mt-4">
-                    <label class="flex items-center">
-                        <jet-checkbox v-model:checked="sendAsClientMessage"/>
-                        <span class="ml-2 text-sm text-gray-600">Send as client event</span>
-                    </label>
                 </div>
 
                 <div
-                    v-if="!sendAsClientMessage"
-                    class="block mt-4"
+                    v-if="form.method !== 'GET'"
+                    class="mt-4"
                 >
-                    <label class="flex items-center">
-                        <jet-checkbox v-model:checked="sendToOthers"/>
-                        <span class="ml-2 text-sm text-gray-600">Broadcast to others</span>
-                    </label>
-                </div>
-
-                <div class="mt-4">
                     <jet-label
-                        for="message"
-                        value="Message"
+                        for="payload"
+                        value="Payload"
                     />
                     <v-ace-editor
-                        id="message"
-                        v-model:value="form.message"
+                        id="payload"
+                        v-model:value="form.payload"
                         lang="json"
                         theme="chrome"
                         style="height: 300px"
                     />
                     <jet-input-error
-                        :message="form.errors.message"
+                        :message="form.errors.payload"
                         class="mt-2"
                     />
                 </div>
             </form>
+
+            <div
+                v-if="response"
+                class="mt-4"
+            >
+                <jet-label
+                    for="response"
+                    value="Response"
+                />
+                <v-ace-editor
+                    id="response"
+                    v-model:value="response"
+                    :readonly="true"
+                    lang="json"
+                    theme="chrome"
+                    style="height: 300px"
+                />
+            </div>
         </template>
 
         <template #footer>
@@ -99,7 +101,7 @@
                 class="ml-3"
                 :class="{ 'opacity-25': form.processing }"
                 :disabled="form.processing"
-                @click="sendMessage"
+                @click="sendRequest"
             >
                 Send
             </jet-button>
@@ -116,6 +118,7 @@ import JetInput from '@/Jetstream/Input';
 import JetInputError from '@/Jetstream/InputError';
 import JetLabel from '@/Jetstream/Label';
 import JetSecondaryButton from '@/Jetstream/SecondaryButton';
+import JetSelect from '@/Jetstream/Select';
 import { VAceEditor } from 'vue3-ace-editor';
 
 export default defineComponent({
@@ -127,20 +130,24 @@ export default defineComponent({
         JetInputError,
         JetLabel,
         JetSecondaryButton,
+        JetSelect,
         VAceEditor,
     },
 
-    emits: ['onClientMessage'],
+    emits: [],
 
     props: {
         classes: {
             default: ['inline-block'],
         },
-        connection: {
-            default: () => ({}),
+        path: {
+            default: '/channels',
         },
-        channel: {
-            default: null,
+        method: {
+            default: 'GET',
+        },
+        payload: {
+            default: '{}',
         },
         app: {
             default: () => ({
@@ -157,21 +164,29 @@ export default defineComponent({
     data() {
         return {
             showModal: false,
-            sendAsClientMessage: false,
-            sendToOthers: false,
+            response: '',
             form: this.$inertia.form({
-                channel: '',
-                event: '',
-                message: '{}',
+                path: '/channels',
+                method: 'GET',
+                payload: '{}',
                 app: JSON.stringify(this.app),
-                socket_id: '',
             }),
         };
     },
 
     mounted() {
-        if (this.channel) {
-            this.form.channel = this.channel;
+        if (this.path) {
+            this.form.path = this.path;
+        }
+
+        if (this.method) {
+            this.form.method = this.method;
+        }
+
+        if (this.payload) {
+            this.form.payload = typeof this.payload === 'string'
+                ? this.payload
+                : JSON.stringify(this.payload);
         }
     },
 
@@ -180,37 +195,12 @@ export default defineComponent({
             this.showModal = false;
         },
 
-        sendMessage() {
-            if (this.sendAsClientMessage) {
-                this.$emit('onClientMessage', {
-                    ...this.form.data(),
-                    connection: this.connection,
-                });
+        sendRequest() {
+            this.response = null;
 
-                this.closeModal();
-
-                return;
-            }
-
-            axios.post(route('broadcast'), this.form.data()).then(() => {
-                this.closeModal();
+            axios.post(route('proxy-http-request'), this.form.data()).then((response) => {
+                this.response = JSON.stringify(response.data, null, 4);
             });
-        },
-    },
-
-    watch: {
-        sendAsClientMessage(newValue) {
-            if (newValue === true) {
-                this.sendToOthers = false;
-                this.form.socket_id = '';
-            }
-        },
-
-        sendToOthers(newValue) {
-            if (newValue === true) {
-                this.sendAsClientMessage = false;
-                this.form.socket_id = this.connection.pusher.connection.socket_id;
-            }
         },
     },
 });
