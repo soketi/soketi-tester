@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FakeUser;
+use Exception;
 use Illuminate\Http\Request;
 use Pusher\Pusher;
 
@@ -41,6 +42,32 @@ class BroadcastController extends Controller
     }
 
     /**
+     * Authorize the connection.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function authorizeConnection(Request $request)
+    {
+        $request->validate([
+            'app' => ['required', 'json'],
+        ]);
+
+        $app = json_decode($request->app, true);
+
+        $decodedString = "{$request->socket_id}::user::{$request->user_info}";
+
+        $auth = $app['key'].':'.hash_hmac(
+            'sha256', $decodedString, $app['secret'],
+        );
+
+        return [
+            'auth' => $auth,
+            'user_data' => $request->user_info,
+        ];
+    }
+
+    /**
      * Broadcast a message.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -65,6 +92,49 @@ class BroadcastController extends Controller
         );
 
         return ['ok' => true];
+    }
+
+    /**
+     * Proxy a HTTP request to the Pusher app.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function proxyHttpRequest(Request $request)
+    {
+        $request->validate([
+            'app' => ['required', 'json'],
+            'method' => ['required', 'string', 'in:GET,POST,PUT,PATCH,DELETE'],
+            'path' => ['required', 'string'],
+            'parameters' => ['nullable', 'array'],
+            'parameters.*.name' => ['required', 'string'],
+            'parameters.*.value' => ['required', 'string'],
+        ]);
+
+        $request->params = collect($request->params ?? [])->mapWithKeys(function ($param) {
+            return [$param['name'] => $param['value']];
+        })->toArray();
+
+        $arguments = $request->method === 'GET'
+            ? [$request->path, $request->params, true]
+            : [$request->path, $request->body, $request->params];
+
+        try {
+            $response = $this->pusher(json_decode($request->app, true))->{strtolower($request->method)}(
+                ...$arguments,
+            );
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'exception' => $e,
+            ]);
+        }
+
+        /** @var array $response */
+        return response()->json([
+            'success' => true,
+            'response' => $response,
+        ]);
     }
 
     /**

@@ -16,13 +16,23 @@
                     <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-4 space-y-3">
                         <!-- CONNECTION -->
                         <div class="flex justify-between w-full">
-                            <div>
-                                {{ i + 1 }}.
-                                <span class="uppercase">{{ connection.status }}</span>
-                                -
-                                <span class="truncate">
-                                    {{ Object.keys(connection.channels).length > 0 ? Object.keys(connection.channels).join(', ') : 'No channels' }}
-                                </span>
+                            <div class="truncate">
+                                <div>
+                                    {{ i + 1 }}.
+                                    <span class="uppercase">{{ connection.status }}</span>
+                                    -
+                                    <span>
+                                        {{ Object.keys(connection.channels).length > 0 ? Object.keys(connection.channels).join(', ') : 'No channels' }}
+                                    </span>
+                                </div>
+                                <message-modal
+                                    v-if="connection.signin"
+                                    :message="JSON.stringify(JSON.parse(connection.authenticateAsUser), null, 4)"
+                                >
+                                    <span class="cursor-pointer hover:underline">
+                                        Authenticated as: {{ connection.authenticateAsUser }}
+                                    </span>
+                                </message-modal>
                             </div>
                             <jet-danger-button @click="disconnect(i)">Close connection</jet-danger-button>
                         </div>
@@ -103,7 +113,16 @@
                 </div>
             </div>
 
-            <jet-button @click="newConnection()">New connection</jet-button>
+            <div class="flex space-x-4 divide-x-4 divide-solid">
+                <jet-button @click="newConnection()">New connection</jet-button>
+                <div class="flex space-x-2 pl-4">
+                    <jet-select
+                        v-model="authenticateAsUser"
+                        :options="users.map(({ user_id, user_info }) => ({ label: `${user_info.name} (id: ${user_id})`, value: JSON.stringify(user_info) }))"
+                    />
+                    <jet-button @click="newConnection(true)">New connection (signin)</jet-button>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
@@ -147,12 +166,14 @@ export default defineComponent({
                 tls: false,
             },
             connections: [],
-            authorizedUser: null,
+            authorizePresenceChannelAsUser: null,
+            authenticateAsUser: null,
         };
     },
 
     mounted() {
-        this.newConnection();
+        // Enable this for development purposes.
+        // this.newConnection();
     },
 
     computed: {
@@ -162,7 +183,9 @@ export default defineComponent({
     },
 
     methods: {
-        newConnection() {
+        newConnection(signin = false) {
+            let authenticateAsUser = this.authenticateAsUser;
+
             let connection = new Pusher(this.app.key, {
                 host: this.app.host,
                 wssHost: this.app.host,
@@ -179,7 +202,7 @@ export default defineComponent({
                             axios.post('/authorize-channel', {
                                 socket_id: socketId,
                                 channel_name: channel.name,
-                                user_info: this.authorizedUser,
+                                user_info: this.authorizePresenceChannelAsUser,
                                 app: JSON.stringify(this.app),
                             })
                             .then(response => {
@@ -191,6 +214,21 @@ export default defineComponent({
                         }
                     };
                 },
+                userAuthentication: {
+                    customHandler: ({ socketId }, callback) => {
+                        axios.post('/authorize-connection', {
+                            socket_id: socketId,
+                            user_info: authenticateAsUser,
+                            app: JSON.stringify(this.app),
+                        })
+                        .then(response => {
+                            callback(false, response.data);
+                        })
+                        .catch(error => {
+                            callback(true, error);
+                        });
+                    },
+                },
             });
 
             let newLength = this.connections.push({
@@ -198,15 +236,23 @@ export default defineComponent({
                 messages: [],
                 statuses: [],
                 status: 'pending',
+                signin,
+                authenticateAsUser,
                 channels: {},
                 newChannelForm: this.$inertia.form({
                     name: '',
                     user_info: '',
                 }),
+                lastPing: new Date(),
+                signinSuccess: false,
             });
 
             let newConnIndex = newLength - 1;
             let newConn = this.connections[newConnIndex];
+
+            if (signin) {
+                connection.signin();
+            }
 
             newConn.pusher.connection.bind('state_change', ({ previous, current }) => {
                 newConn.statuses.push({ previous, current });
@@ -214,6 +260,14 @@ export default defineComponent({
             });
 
             newConn.pusher.bind_global((event, data) => {
+                if (event === 'pusher:pong') {
+                    newConn.lastPing = new Date();
+                }
+
+                if (event === 'pusher:"signin_success') {
+                    newConn.signinSuccess = true;
+                }
+
                 newConn.messages.push({ event, data });
             });
         },
@@ -238,11 +292,11 @@ export default defineComponent({
                 return;
             }
 
-            this.authorizedUser = connection.newChannelForm.user_info;
+            this.authorizePresenceChannelAsUser = connection.newChannelForm.user_info;
 
             connection.channels[channelName] = {
                 messages: [],
-                user_info: this.authorizedUser,
+                user_info: this.authorizePresenceChannelAsUser,
             };
 
             connection.pusher.subscribe(channelName).bind_global((event, data) => {

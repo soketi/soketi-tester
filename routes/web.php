@@ -30,5 +30,7 @@ Route::middleware([
     ]))->name('dashboard');
 
     Route::post('/authorize-channel', [BroadcastController::class, 'authorizeChannel'])->name('auth-channel');
+    Route::post('/authorize-connection', [BroadcastController::class, 'authorizeConnection'])->name('auth-connection');
     Route::post('/broadcast', [BroadcastController::class, 'broadcast'])->name('broadcast');
+    Route::post('/proxy-http-request', [BroadcastController::class, 'proxyHttpRequest'])->name('proxy-http-request');
 });
