@@ -26,7 +26,7 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: pcov
 
-      - uses: actions/setup-node@v3.1.1
+      - uses: actions/setup-node@v3.3.0
         name: Setup Node.js v16.x
         with:
           node-version: 16.x
