@@ -55,7 +55,7 @@
 
                 <div class="block mt-4">
                     <label class="flex items-center">
-                        <jet-checkbox v-model:checked="sendAsClientMessage"/>
+                        <jet-checkbox v-model:checked="sendAsClientMessage" />
                         <span class="ml-2 text-sm text-gray-600">Send as client event</span>
                     </label>
                 </div>
@@ -65,7 +65,7 @@
                     class="block mt-4"
                 >
                     <label class="flex items-center">
-                        <jet-checkbox v-model:checked="sendToOthers"/>
+                        <jet-checkbox v-model:checked="sendToOthers" />
                         <span class="ml-2 text-sm text-gray-600">Broadcast to others</span>
                     </label>
                 </div>
@@ -130,8 +130,6 @@ export default defineComponent({
         VAceEditor,
     },
 
-    emits: ['onClientMessage'],
-
     props: {
         classes: {
             default: ['inline-block'],
@@ -154,6 +152,8 @@ export default defineComponent({
         },
     },
 
+    emits: ['onClientMessage'],
+
     data() {
         return {
             showModal: false,
@@ -167,6 +167,22 @@ export default defineComponent({
                 socket_id: '',
             }),
         };
+    },
+
+    watch: {
+        sendAsClientMessage(newValue) {
+            if (newValue === true) {
+                this.sendToOthers = false;
+                this.form.socket_id = '';
+            }
+        },
+
+        sendToOthers(newValue) {
+            if (newValue === true) {
+                this.sendAsClientMessage = false;
+                this.form.socket_id = this.connection.pusher.connection.socket_id;
+            }
+        },
     },
 
     mounted() {
@@ -195,22 +211,6 @@ export default defineComponent({
             axios.post(route('broadcast'), this.form.data()).then(() => {
                 this.closeModal();
             });
-        },
-    },
-
-    watch: {
-        sendAsClientMessage(newValue) {
-            if (newValue === true) {
-                this.sendToOthers = false;
-                this.form.socket_id = '';
-            }
-        },
-
-        sendToOthers(newValue) {
-            if (newValue === true) {
-                this.sendAsClientMessage = false;
-                this.form.socket_id = this.connection.pusher.connection.socket_id;
-            }
         },
     },
 });

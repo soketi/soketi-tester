@@ -1443,30 +1443,34 @@
         },
         {
             "name": "laravel/jetstream",
-            "version": "v2.9.0",
+            "version": "v2.10.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/jetstream.git",
-                "reference": "c46f16295782e95e179da286f97c513ef8da7612"
+                "reference": "2c7ccb92c09e5c3be260c9b4c190c19d19796006"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/jetstream/zipball/c46f16295782e95e179da286f97c513ef8da7612",
-                "reference": "c46f16295782e95e179da286f97c513ef8da7612",
+                "url": "https://api.github.com/repos/laravel/jetstream/zipball/2c7ccb92c09e5c3be260c9b4c190c19d19796006",
+                "reference": "2c7ccb92c09e5c3be260c9b4c190c19d19796006",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "illuminate/support": "^8.37|^9.0",
+                "illuminate/console": "^9.21",
+                "illuminate/support": "^9.21",
                 "jenssegers/agent": "^2.6",
                 "laravel/fortify": "^1.12",
-                "php": "^7.3|^8.0"
+                "php": "^8.0.2"
+            },
+            "conflict": {
+                "laravel/framework": "<9.19.0"
             },
             "require-dev": {
                 "inertiajs/inertia-laravel": "^0.5.2",
                 "laravel/sanctum": "^2.7",
                 "mockery/mockery": "^1.0",
-                "orchestra/testbench": "^6.0|^7.0",
+                "orchestra/testbench": "^7.0",
                 "phpunit/phpunit": "^9.3"
             },
             "type": "library",
@@ -1505,7 +1509,7 @@
                 "issues": "https://github.com/laravel/jetstream/issues",
                 "source": "https://github.com/laravel/jetstream"
             },
-            "time": "2022-06-28T11:52:25+00:00"
+            "time": "2022-07-21T13:40:45+00:00"
         },
         {
             "name": "laravel/sanctum",

@@ -6,8 +6,6 @@ import JetInput from './Input.vue';
 import JetInputError from './InputError.vue';
 import JetSecondaryButton from './SecondaryButton.vue';
 
-const emit = defineEmits(['confirmed']);
-
 defineProps({
     title: {
         type: String,
@@ -22,6 +20,8 @@ defineProps({
         default: 'Confirm',
     },
 });
+
+const emit = defineEmits(['confirmed']);
 
 const confirmingPassword = ref(false);
 

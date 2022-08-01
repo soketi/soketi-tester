@@ -1,8 +1,6 @@
 <script setup>
 import Modal from './Modal.vue';
 
-const emit = defineEmits(['close']);
-
 defineProps({
     show: {
         type: Boolean,
@@ -17,6 +15,8 @@ defineProps({
         default: true,
     },
 });
+
+const emit = defineEmits(['close']);
 
 const close = () => {
     emit('close');

@@ -58,7 +58,9 @@ class BroadcastController extends Controller
         $decodedString = "{$request->socket_id}::user::{$request->user_info}";
 
         $auth = $app['key'].':'.hash_hmac(
-            'sha256', $decodedString, $app['secret'],
+            'sha256',
+            $decodedString,
+            $app['secret'],
         );
 
         return [
