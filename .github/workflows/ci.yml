@@ -50,11 +50,11 @@ jobs:
           npm ci
           npm run build
           php artisan storage:link
-          ./sail up -d --wait redis pgsql
+          ./sail up -d --wait
 
       - name: Run tests
         run: |
-          vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+          ./sail phpunit --coverage-text --coverage-clover=coverage.xml
 
       - uses: codecov/codecov-action@v3.0.0
         with:
