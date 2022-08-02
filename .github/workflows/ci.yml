@@ -54,7 +54,7 @@ jobs:
 
       - name: Run tests
         run: |
-          ./sail phpunit --coverage-text --coverage-clover=coverage.xml
+          vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
 
       - uses: codecov/codecov-action@v3.0.0
         with:
