@@ -1,8 +1,8 @@
 tester.soketi.app
 =================
 
-![CI](https://github.com/soketi/tester/workflows/CI/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/soketi/tester/branch/master/graph/badge.svg?token=b12HgFrUV3)](https://codecov.io/gh/soketi/tester)
+![CI](https://github.com/soketi/soketi-tester/workflows/CI/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/soketi/soketi-tester/branch/master/graph/badge.svg?token=b12HgFrUV3)](https://codecov.io/gh/soketi/soketi-tester)
 
 Test your Soketi implementation with this awesome web tool. 🥰
 
@@ -10,6 +10,7 @@ Test your Soketi implementation with this awesome web tool. 🥰
 
 - PHP 8.1+
 - Soketi 1.x+
+- Docker
 
 ## 🚀 Installation
 
