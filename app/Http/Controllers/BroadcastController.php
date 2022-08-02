@@ -157,7 +157,9 @@ class BroadcastController extends Controller
             $app['secret'],
             $app['id'],
             [
-                'host' => $app['host'],
+                'host' => $app['host'] === '127.0.0.1' && config('broadcasting.connections.pusher.options.host') === 'soketi'
+                    ? 'soketi'
+                    : $app['host'],
                 'port' => $app['port'],
                 'scheme' => $app['tls'] ? 'https' : 'http',
                 'encrypted' => true,

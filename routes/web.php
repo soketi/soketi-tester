@@ -2,9 +2,7 @@
 
 use App\Http\Controllers\BroadcastController;
 use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------

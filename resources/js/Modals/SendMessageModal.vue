@@ -1,3 +1,89 @@
+<script setup>
+import { onMounted, ref, watch } from 'vue';
+import { useForm } from '@inertiajs/inertia-vue3';
+import { VAceEditor } from 'vue3-ace-editor';
+import JetButton from '@/Jetstream/Button.vue';
+import JetCheckbox from '@/Jetstream/Checkbox.vue';
+import JetDialogModal from '@/Jetstream/DialogModal.vue';
+import JetInput from '@/Jetstream/Input.vue';
+import JetInputError from '@/Jetstream/InputError.vue';
+import JetLabel from '@/Jetstream/Label.vue';
+import JetSecondaryButton from '@/Jetstream/SecondaryButton.vue';
+
+const props = defineProps({
+    classes: {
+        default: ['inline-block'],
+    },
+    connection: {
+        default: () => ({}),
+    },
+    channel: {
+        default: null,
+    },
+    app: {
+        default: () => ({
+            id: 'app-id',
+            secret: 'app-secret',
+            key: 'app-key',
+            host: '127.0.0.1',
+            port: 6001,
+            tls: false,
+        }),
+    },
+});
+
+defineEmits(['onClientMessage']);
+
+let showModal = ref(false);
+let sendAsClientMessage = ref(false);
+let sendToOthers = ref(false);
+
+let form = useForm({
+    channel: '',
+    event: '',
+    message: '{}',
+    app: JSON.stringify(props.app),
+    socket_id: '',
+});
+
+watch(sendAsClientMessage, (newValue) => {
+    if (newValue === true) {
+        sendToOthers = false;
+        form.socket_id = '';
+    }
+});
+
+watch(sendToOthers, (newValue) => {
+    if (newValue === true) {
+        sendAsClientMessage.value = false;
+        form.socket_id = props.connection.pusher.connection.socket_id;
+    }
+});
+
+onMounted(() => {
+    if (props.channel) {
+        form.channel = props.channel;
+    }
+});
+
+const sendMessage = () => {
+    if (sendAsClientMessage.value) {
+        emit('onClientMessage', {
+            ...form.data(),
+            connection: props.connection,
+        });
+
+        showModal.value = false;
+
+        return;
+    }
+
+    axios.post(route('broadcast'), form.data()).then(() => {
+        showModal.value = false;
+    });
+};
+</script>
+
 <template>
     <div
         :class="classes"
@@ -5,9 +91,9 @@
     >
         <slot />
     </div>
-    <jet-dialog-modal
+    <JetDialogModal
         :show="showModal"
-        @close="closeModal"
+        @close="showModal = false"
     >
         <template #title>
             Send a message
@@ -16,11 +102,11 @@
         <template #content>
             <form @submit.prevent="sendMessage">
                 <div class="mt-4">
-                    <jet-label
+                    <JetLabel
                         for="channel"
                         value="Channel"
                     />
-                    <jet-input
+                    <JetInput
                         id="channel"
                         v-model="form.channel"
                         type="text"
@@ -28,18 +114,18 @@
                         placeholder="private-room.1"
                         @keyup.enter="sendMessage"
                     />
-                    <jet-input-error
+                    <JetInputError
                         :message="form.errors.channel"
                         class="mt-2"
                     />
                 </div>
 
                 <div class="mt-4">
-                    <jet-label
+                    <JetLabel
                         for="event_name"
                         value="Event name"
                     />
-                    <jet-input
+                    <JetInput
                         id="event_name"
                         v-model="form.event"
                         type="text"
@@ -47,7 +133,7 @@
                         placeholder="my:event"
                         @keyup.enter="sendMessage"
                     />
-                    <jet-input-error
+                    <JetInputError
                         :message="form.errors.event"
                         class="mt-2"
                     />
@@ -55,7 +141,7 @@
 
                 <div class="block mt-4">
                     <label class="flex items-center">
-                        <jet-checkbox v-model:checked="sendAsClientMessage" />
+                        <JetCheckbox v-model:checked="sendAsClientMessage" />
                         <span class="ml-2 text-sm text-gray-600">Send as client event</span>
                     </label>
                 </div>
@@ -65,13 +151,13 @@
                     class="block mt-4"
                 >
                     <label class="flex items-center">
-                        <jet-checkbox v-model:checked="sendToOthers" />
+                        <JetCheckbox v-model:checked="sendToOthers" />
                         <span class="ml-2 text-sm text-gray-600">Broadcast to others</span>
                     </label>
                 </div>
 
                 <div class="mt-4">
-                    <jet-label
+                    <JetLabel
                         for="message"
                         value="Message"
                     />
@@ -82,7 +168,7 @@
                         theme="chrome"
                         style="height: 300px"
                     />
-                    <jet-input-error
+                    <JetInputError
                         :message="form.errors.message"
                         class="mt-2"
                     />
@@ -91,127 +177,18 @@
         </template>
 
         <template #footer>
-            <jet-secondary-button @click="closeModal">
+            <JetSecondaryButton @click="showModal = false">
                 Cancel
-            </jet-secondary-button>
+            </JetSecondaryButton>
 
-            <jet-button
+            <JetButton
                 class="ml-3"
                 :class="{ 'opacity-25': form.processing }"
                 :disabled="form.processing"
                 @click="sendMessage"
             >
                 Send
-            </jet-button>
+            </JetButton>
         </template>
-    </jet-dialog-modal>
+    </JetDialogModal>
 </template>
-
-<script>
-import { defineComponent } from 'vue';
-import JetButton from '@/Jetstream/Button';
-import JetCheckbox from '@/Jetstream/Checkbox';
-import JetDialogModal from '@/Jetstream/DialogModal';
-import JetInput from '@/Jetstream/Input';
-import JetInputError from '@/Jetstream/InputError';
-import JetLabel from '@/Jetstream/Label';
-import JetSecondaryButton from '@/Jetstream/SecondaryButton';
-import { VAceEditor } from 'vue3-ace-editor';
-
-export default defineComponent({
-    components: {
-        JetButton,
-        JetCheckbox,
-        JetDialogModal,
-        JetInput,
-        JetInputError,
-        JetLabel,
-        JetSecondaryButton,
-        VAceEditor,
-    },
-
-    props: {
-        classes: {
-            default: ['inline-block'],
-        },
-        connection: {
-            default: () => ({}),
-        },
-        channel: {
-            default: null,
-        },
-        app: {
-            default: () => ({
-                id: 'app-id',
-                secret: 'app-secret',
-                key: 'app-key',
-                host: '127.0.0.1',
-                port: 6001,
-                tls: false,
-            }),
-        },
-    },
-
-    emits: ['onClientMessage'],
-
-    data() {
-        return {
-            showModal: false,
-            sendAsClientMessage: false,
-            sendToOthers: false,
-            form: this.$inertia.form({
-                channel: '',
-                event: '',
-                message: '{}',
-                app: JSON.stringify(this.app),
-                socket_id: '',
-            }),
-        };
-    },
-
-    watch: {
-        sendAsClientMessage(newValue) {
-            if (newValue === true) {
-                this.sendToOthers = false;
-                this.form.socket_id = '';
-            }
-        },
-
-        sendToOthers(newValue) {
-            if (newValue === true) {
-                this.sendAsClientMessage = false;
-                this.form.socket_id = this.connection.pusher.connection.socket_id;
-            }
-        },
-    },
-
-    mounted() {
-        if (this.channel) {
-            this.form.channel = this.channel;
-        }
-    },
-
-    methods: {
-        closeModal() {
-            this.showModal = false;
-        },
-
-        sendMessage() {
-            if (this.sendAsClientMessage) {
-                this.$emit('onClientMessage', {
-                    ...this.form.data(),
-                    connection: this.connection,
-                });
-
-                this.closeModal();
-
-                return;
-            }
-
-            axios.post(route('broadcast'), this.form.data()).then(() => {
-                this.closeModal();
-            });
-        },
-    },
-});
-</script>

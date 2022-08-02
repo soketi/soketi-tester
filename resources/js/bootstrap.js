@@ -33,5 +33,5 @@ import ace from 'ace-builds';
 
 ace.config.set(
     'basePath',
-    'https://cdn.jsdelivr.net/npm/ace-builds@' + require('ace-builds').version + '/src-noconflict/',
+    'https://cdn.jsdelivr.net/npm/ace-builds@' + ace.version + '/src-noconflict/',
 );

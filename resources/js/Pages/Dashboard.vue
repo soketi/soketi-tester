@@ -1,3 +1,179 @@
+<script setup>
+import { onMounted, ref } from 'vue';
+import ApiPlaygroundModal from '@/Modals/ApiPlaygroundModal.vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import JetButton from '@/Jetstream/Button.vue';
+import JetDangerButton from '@/Jetstream/DangerButton.vue';
+import JetInput from '@/Jetstream/Input.vue';
+import JetSelect from '@/Jetstream/Select.vue';
+import MessageModal from '@/Modals/MessageModal.vue';
+import Pusher from 'pusher-js';
+import SendMessageModal from '@/Modals/SendMessageModal.vue';
+import { useForm } from '@inertiajs/inertia-vue3';
+
+defineProps({
+    users: {
+        default: () => [],
+    },
+});
+
+let app = ref({
+    id: 'app-id',
+    secret: 'app-secret',
+    key: 'app-key',
+    host: '127.0.0.1',
+    port: 6001,
+    tls: false,
+});
+
+let connections = ref([]);
+let authorizePresenceChannelAsUser = ref(null);
+let authenticateAsUser = ref(null);
+
+onMounted(() => {
+    // Enable this for development purposes.
+    // newConnection();
+});
+
+const newConnection = (signin = false) => {
+    let connection = new Pusher(app.value.key, {
+        host: app.value.host,
+        wssHost: app.value.host,
+        wsHost: app.value.host,
+        wsPort: app.value.port,
+        wssPort: app.value.port,
+        forceTLS: app.value.tls,
+        encrypted: true,
+        disableStats: true,
+        enabledTransports: app.value.tls ? ['wss'] : ['ws'],
+        authorizer: (channel, options) => {
+            return {
+                authorize: (socketId, callback) => {
+                    axios.post('/authorize-channel', {
+                        socket_id: socketId,
+                        channel_name: channel.name,
+                        user_info: authorizePresenceChannelAsUser.value,
+                        app: JSON.stringify(app.value),
+                    }).then(response => {
+                        callback(false, response.data);
+                    }).catch(error => {
+                        callback(true, error);
+                    });
+                }
+            };
+        },
+        userAuthentication: {
+            customHandler: ({ socketId }, callback) => {
+                axios.post('/authorize-connection', {
+                    socket_id: socketId,
+                    user_info: authenticateAsUser.value,
+                    app: JSON.stringify(app.value),
+                }).then(response => {
+                    callback(false, response.data);
+                }).catch(error => {
+                    callback(true, error);
+                });
+            },
+        },
+    });
+
+    let newLength = connections.value.push({
+        pusher: connection,
+        messages: [],
+        statuses: [],
+        status: 'pending',
+        signin,
+        authenticateAsUser,
+        channels: {},
+        newChannelForm: useForm({
+            name: '',
+            user_info: '',
+        }),
+        lastPing: new Date(),
+        signinSuccess: false,
+    });
+
+    let newConnIndex = newLength - 1;
+    let newConn = connections.value[newConnIndex];
+
+    if (signin) {
+        connection.signin();
+    }
+
+    newConn.pusher.connection.bind('state_change', ({ previous, current }) => {
+        newConn.statuses.push({ previous, current });
+        newConn.status = current;
+    });
+
+    newConn.pusher.bind_global((event, data) => {
+        if (event === 'pusher:pong') {
+            newConn.lastPing = new Date();
+        }
+
+        if (event === 'pusher:"signin_success') {
+            newConn.signinSuccess = true;
+        }
+
+        newConn.messages.push({ event, data });
+    });
+};
+
+const disconnect = (index) => {
+    let connection = connections.value[index] ?? null;
+
+    if (connection) {
+        connection.pusher.disconnect();
+        connections.value.splice(index, 1);
+    }
+};
+
+const subscribeToChannel = (connection) => {
+    let channelName = connection.newChannelForm.name;
+
+    if (! channelName) {
+        return;
+    }
+
+    if (connection.channels[channelName] ?? false) {
+        return;
+    }
+
+    authorizePresenceChannelAsUser = connection.newChannelForm.user_info;
+
+    connection.channels[channelName] = {
+        messages: [],
+        user_info: authorizePresenceChannelAsUser,
+    };
+
+    connection.pusher.subscribe(channelName).bind_global((event, data) => {
+        connection.channels[channelName].messages.push({ event, data });
+    });
+
+    connection.newChannelForm.reset();
+};
+
+const unsubscribeFromChannel = (connection, channelName) => {
+    connection.pusher.unsubscribe(channelName);
+    delete connection.channels[channelName];
+};
+
+const resubscribeToChannel = (connection, channelName) => {
+    connection.newChannelForm.name = channelName;
+    connection.newChannelForm.user_info = connection.channels[channelName].user_info;
+
+    unsubscribeFromChannel(connection, channelName);
+    subscribeToChannel(connection);
+};
+
+const onClientMessage = ({ connection, channel, event, message }) => {
+    connection.pusher.channel(channel).trigger(`client-${event}`, JSON.parse(message));
+};
+
+const isPresenceChannel = (channelName) => {
+    return channelName.indexOf('presence-') === 0;
+};
+</script>
+
 <template>
     <AppLayout title="Tester">
         <template #header>
@@ -45,7 +221,9 @@
                                     </span>
                                 </message-modal>
                             </div>
-                            <jet-danger-button @click="disconnect(i)">Close connection</jet-danger-button>
+                            <JetDangerButton @click="disconnect(i)">
+                                Close connection
+                            </JetDangerButton>
                         </div>
                         <!-- CONNECTION -->
 
@@ -55,27 +233,29 @@
 
                         <!-- ADD CHANNEL -->
                         <div class="flex space-x-3">
-                            <jet-input
+                            <JetInput
                                 v-model="connection.newChannelForm.name"
                                 type="text"
                                 placeholder="private-room.1"
                                 @keyup.enter="subscribeToChannel(connection)"
                             />
-                            <jet-select
+                            <JetSelect
                                 v-if="isPresenceChannel(connection.newChannelForm.name)"
                                 v-model="connection.newChannelForm.user_info"
                                 :options="users.map(({ user_id, user_info }) => ({ label: `${user_info.name} (id: ${user_id})`, value: JSON.stringify(user_info) }))"
                             />
-                            <jet-button @click="subscribeToChannel(connection)">Subscribe</jet-button>
+                            <JetButton @click="subscribeToChannel(connection)">
+                                Subscribe
+                            </JetButton>
                         </div>
                         <!-- ADD CHANNEL -->
 
                         <!-- CHANNELS -->
                         <div class="flex flex-col space-y-1">
                             <div
-                                class="w-full bg-white overflow-hidden border border-2 sm:rounded-lg p-4 space-y-3"
                                 v-for="({ messages }, channelName) in connection.channels"
                                 :key="channelName"
+                                class="w-full bg-white overflow-hidden border-2 sm:rounded-lg p-4 space-y-3"
                             >
                                 <!-- CHANNEL TOP -->
                                 <div>
@@ -126,221 +306,20 @@
 
             <!-- NEW CONNECTIONS -->
             <div class="flex space-x-4 divide-x-4 divide-solid">
-                <jet-button @click="newConnection()">New connection</jet-button>
+                <JetButton @click="newConnection">
+                    New connection
+                </JetButton>
                 <div class="flex space-x-2 pl-4">
-                    <jet-select
+                    <JetSelect
                         v-model="authenticateAsUser"
                         :options="users.map(({ user_id, user_info }) => ({ label: `${user_info.name} (id: ${user_id})`, value: JSON.stringify(user_info) }))"
                     />
-                    <jet-button @click="newConnection(true)">New connection (signin)</jet-button>
+                    <JetButton @click="newConnection(true)">
+                        New connection (signin)
+                    </JetButton>
                 </div>
             </div>
             <!-- NEW CONNECTIONS -->
         </div>
     </AppLayout>
 </template>
-
-<script>
-import { defineComponent } from 'vue';
-import ApiPlaygroundModal from '@/Modals/ApiPlaygroundModal';
-import AppLayout from '@/Layouts/AppLayout';
-import JetButton from '@/Jetstream/Button';
-import JetDangerButton from '@/Jetstream/DangerButton';
-import JetInput from '@/Jetstream/Input';
-import JetSelect from '@/Jetstream/Select';
-import MessageModal from '@/Modals/MessageModal';
-import Pusher from 'pusher-js';
-import SendMessageModal from '@/Modals/SendMessageModal';
-
-export default defineComponent({
-    components: {
-        ApiPlaygroundModal,
-        AppLayout,
-        JetButton,
-        JetDangerButton,
-        JetInput,
-        JetSelect,
-        MessageModal,
-        SendMessageModal,
-    },
-
-    props: {
-        users: {
-            default: () => [],
-        },
-    },
-
-    data() {
-        return {
-            app: {
-                id: 'app-id',
-                secret: 'app-secret',
-                key: 'app-key',
-                host: '127.0.0.1',
-                port: 6001,
-                tls: false,
-            },
-            connections: [],
-            authorizePresenceChannelAsUser: null,
-            authenticateAsUser: null,
-        };
-    },
-
-    mounted() {
-        // Enable this for development purposes.
-        // this.newConnection();
-    },
-
-    computed: {
-        connectedMessage() {
-            return 'Not connected';
-        },
-    },
-
-    methods: {
-        newConnection(signin = false) {
-            let authenticateAsUser = this.authenticateAsUser;
-
-            let connection = new Pusher(this.app.key, {
-                host: this.app.host,
-                wssHost: this.app.host,
-                wsHost: this.app.host,
-                wsPort: this.app.port,
-                wssPort: this.app.port,
-                forceTLS: this.app.tls,
-                encrypted: true,
-                disableStats: true,
-                enabledTransports: this.app.tls ? ['wss'] : ['ws'],
-                authorizer: (channel, options) => {
-                    return {
-                        authorize: (socketId, callback) => {
-                            axios.post('/authorize-channel', {
-                                socket_id: socketId,
-                                channel_name: channel.name,
-                                user_info: this.authorizePresenceChannelAsUser,
-                                app: JSON.stringify(this.app),
-                            })
-                            .then(response => {
-                                callback(false, response.data);
-                            })
-                            .catch(error => {
-                                callback(true, error);
-                            });
-                        }
-                    };
-                },
-                userAuthentication: {
-                    customHandler: ({ socketId }, callback) => {
-                        axios.post('/authorize-connection', {
-                            socket_id: socketId,
-                            user_info: authenticateAsUser,
-                            app: JSON.stringify(this.app),
-                        })
-                        .then(response => {
-                            callback(false, response.data);
-                        })
-                        .catch(error => {
-                            callback(true, error);
-                        });
-                    },
-                },
-            });
-
-            let newLength = this.connections.push({
-                pusher: connection,
-                messages: [],
-                statuses: [],
-                status: 'pending',
-                signin,
-                authenticateAsUser,
-                channels: {},
-                newChannelForm: this.$inertia.form({
-                    name: '',
-                    user_info: '',
-                }),
-                lastPing: new Date(),
-                signinSuccess: false,
-            });
-
-            let newConnIndex = newLength - 1;
-            let newConn = this.connections[newConnIndex];
-
-            if (signin) {
-                connection.signin();
-            }
-
-            newConn.pusher.connection.bind('state_change', ({ previous, current }) => {
-                newConn.statuses.push({ previous, current });
-                newConn.status = current;
-            });
-
-            newConn.pusher.bind_global((event, data) => {
-                if (event === 'pusher:pong') {
-                    newConn.lastPing = new Date();
-                }
-
-                if (event === 'pusher:"signin_success') {
-                    newConn.signinSuccess = true;
-                }
-
-                newConn.messages.push({ event, data });
-            });
-        },
-
-        disconnect(index) {
-            let connection = this.connections[index] ?? null;
-
-            if (connection) {
-                connection.pusher.disconnect();
-                this.connections.splice(index, 1);
-            }
-        },
-
-        subscribeToChannel(connection) {
-            let channelName = connection.newChannelForm.name;
-
-            if (! channelName) {
-                return;
-            }
-
-            if (connection.channels[channelName] ?? false) {
-                return;
-            }
-
-            this.authorizePresenceChannelAsUser = connection.newChannelForm.user_info;
-
-            connection.channels[channelName] = {
-                messages: [],
-                user_info: this.authorizePresenceChannelAsUser,
-            };
-
-            connection.pusher.subscribe(channelName).bind_global((event, data) => {
-                connection.channels[channelName].messages.push({ event, data });
-            });
-
-            connection.newChannelForm.reset();
-        },
-
-        unsubscribeFromChannel(connection, channelName) {
-            connection.pusher.unsubscribe(channelName);
-            delete connection.channels[channelName];
-        },
-
-        resubscribeToChannel(connection, channelName) {
-            connection.newChannelForm.name = channelName;
-            connection.newChannelForm.user_info = connection.channels[channelName].user_info;
-
-            this.unsubscribeFromChannel(connection, channelName);
-            this.subscribeToChannel(connection);
-        },
-
-        onClientMessage({ connection, channel, event, message }) {
-            connection.pusher.channel(channel).trigger(`client-${event}`, JSON.parse(message));
-        },
-
-        isPresenceChannel(channelName) {
-            return channelName.indexOf('presence-') === 0;
-        },
-    },
-});
-</script>

@@ -1,3 +1,28 @@
+<script setup>
+import { onMounted, ref } from 'vue';
+import { VAceEditor } from 'vue3-ace-editor';
+import JetDialogModal from '@/Jetstream/DialogModal.vue';
+import JetSecondaryButton from '@/Jetstream/SecondaryButton.vue';
+
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/theme-chrome';
+
+const props = defineProps({
+    classes: {
+        default: ['block'],
+    },
+    message: {
+        default: '{}',
+    },
+});
+
+let showModal = ref(false);
+let _message = ref('');
+
+onMounted(() => {
+    _message.value = props.message;
+});
+</script>
 <template>
     <div
         :class="classes"
@@ -5,9 +30,9 @@
     >
         <slot />
     </div>
-    <jet-dialog-modal
+    <JetDialogModal
         :show="showModal"
-        @close="closeModal"
+        @close="showModal = false"
     >
         <template #title>
             Message Preview
@@ -17,11 +42,11 @@
             <form @submit.prevent="sendMessage">
                 <div class="mt-4">
                     <v-ace-editor
-                        v-model:value="message"
+                        v-model:value="_message"
                         lang="json"
                         theme="chrome"
                         style="height: 300px"
-                        :readonly="true"
+                        readonly
                         :options="{ useWorker: true }"
                     />
                 </div>
@@ -29,48 +54,9 @@
         </template>
 
         <template #footer>
-            <jet-secondary-button @click="closeModal">
+            <JetSecondaryButton @click="showModal = false">
                 Cancel
-            </jet-secondary-button>
+            </JetSecondaryButton>
         </template>
-    </jet-dialog-modal>
+    </JetDialogModal>
 </template>
-
-<script>
-import { defineComponent } from 'vue';
-import JetDialogModal from '@/Jetstream/DialogModal';
-import JetSecondaryButton from '@/Jetstream/SecondaryButton';
-import { VAceEditor } from 'vue3-ace-editor';
-
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-chrome';
-
-export default defineComponent({
-    components: {
-        JetDialogModal,
-        JetSecondaryButton,
-        VAceEditor,
-    },
-
-    props: {
-        classes: {
-            default: ['block'],
-        },
-        message: {
-            default: '{}',
-        },
-    },
-
-    data() {
-        return {
-            showModal: false,
-        };
-    },
-
-    methods: {
-        closeModal() {
-            this.showModal = false;
-        },
-    },
-});
-</script>

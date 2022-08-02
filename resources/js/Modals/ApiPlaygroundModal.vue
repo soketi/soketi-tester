@@ -1,3 +1,82 @@
+<script setup>
+import { onMounted, ref } from 'vue';
+import { useForm } from '@inertiajs/inertia-vue3';
+import { VAceEditor } from 'vue3-ace-editor';
+import JetButton from '@/Jetstream/Button.vue';
+import JetDialogModal from '@/Jetstream/DialogModal.vue';
+import JetInput from '@/Jetstream/Input.vue';
+import JetInputError from '@/Jetstream/InputError.vue';
+import JetLabel from '@/Jetstream/Label.vue';
+import JetSecondaryButton from '@/Jetstream/SecondaryButton.vue';
+import JetSelect from '@/Jetstream/Select.vue';
+
+const props = defineProps({
+    classes: {
+        default: ['inline-block'],
+    },
+    path: {
+        default: '/channels',
+    },
+    method: {
+        default: 'GET',
+    },
+    payload: {
+        default: '{}',
+    },
+    app: {
+        default: () => ({
+            id: 'app-id',
+            secret: 'app-secret',
+            key: 'app-key',
+            host: '127.0.0.1',
+            port: 6001,
+            tls: false,
+        }),
+    },
+});
+
+let showModal = ref(false);
+let response = ref('');
+let responseHeaders = ref(null);
+let responseStatus = ref(null);
+
+let form = useForm({
+    path: '/channels',
+    method: 'GET',
+    payload: '{}',
+    app: JSON.stringify(props.app),
+});
+
+onMounted(() => {
+    if (props.path) {
+        form.path = props.path;
+    }
+
+    if (props.method) {
+        form.method = props.method;
+    }
+
+    if (props.payload) {
+        form.payload = typeof props.payload === 'string'
+            ? props.payload
+            : JSON.stringify(props.payload);
+    }
+});
+
+const sendRequest = () => {
+    response.value = null;
+    responseHeaders.value = null;
+    responseStatus.value = null;
+
+    axios.post(route('proxy-http-request'), form.data()).then((res) => {
+        responseHeaders.value = res.headers;
+        responseStatus.value = res.status;
+        response.value = JSON.stringify(res.data, null, 4);
+    });
+};
+
+</script>
+
 <template>
     <div
         :class="classes"
@@ -5,9 +84,9 @@
     >
         <slot />
     </div>
-    <jet-dialog-modal
+    <JetDialogModal
         :show="showModal"
-        @close="closeModal"
+        @close="showModal = false"
     >
         <template #title>
             API Playground
@@ -16,11 +95,11 @@
         <template #content>
             <form @submit.prevent="sendRequest">
                 <div class="mt-4">
-                    <jet-label
+                    <JetLabel
                         for="path"
                         value="Relative app path"
                     />
-                    <jet-input
+                    <JetInput
                         id="path"
                         v-model="form.path"
                         type="text"
@@ -28,24 +107,24 @@
                         placeholder="/chanenls"
                         @keyup.enter="sendRequest"
                     />
-                    <jet-input-error
+                    <JetInputError
                         :message="form.errors.path"
                         class="mt-2"
                     />
                 </div>
 
                 <div class="mt-4">
-                    <jet-label
+                    <JetLabel
                         for="method"
                         value="HTTP Method"
                     />
-                    <jet-select
+                    <JetSelect
                         id="method"
                         v-model="form.method"
                         class="w-full mt-1 block"
                         :options="['GET', 'POST'].map(method => ({ label: method, value: method }))"
                     />
-                    <jet-input-error
+                    <JetInputError
                         :message="form.errors.method"
                         class="mt-2"
                     />
@@ -55,7 +134,7 @@
                     v-if="form.method !== 'GET'"
                     class="mt-4"
                 >
-                    <jet-label
+                    <JetLabel
                         for="payload"
                         value="Payload"
                     />
@@ -66,7 +145,7 @@
                         theme="chrome"
                         style="height: 300px"
                     />
-                    <jet-input-error
+                    <JetInputError
                         :message="form.errors.payload"
                         class="mt-2"
                     />
@@ -77,131 +156,38 @@
                 v-if="response"
                 class="mt-4"
             >
-                <jet-label
+                <JetLabel
                     for="response"
                     value="Response"
                 />
                 <v-ace-editor
                     id="response"
                     v-model:value="response"
-                    :readonly="true"
+                    readonly
                     lang="json"
                     theme="chrome"
                     style="height: 300px"
                 />
+
+                <div>
+                    Status: {{ responseStatus }}
+                </div>
             </div>
         </template>
 
         <template #footer>
-            <jet-secondary-button @click="closeModal">
+            <JetSecondaryButton @click="showModal = false">
                 Cancel
-            </jet-secondary-button>
+            </JetSecondaryButton>
 
-            <jet-button
+            <JetButton
                 class="ml-3"
                 :class="{ 'opacity-25': form.processing }"
                 :disabled="form.processing"
                 @click="sendRequest"
             >
                 Send
-            </jet-button>
+            </JetButton>
         </template>
-    </jet-dialog-modal>
+    </JetDialogModal>
 </template>
-
-<script>
-import { defineComponent } from 'vue';
-import JetButton from '@/Jetstream/Button';
-import JetCheckbox from '@/Jetstream/Checkbox';
-import JetDialogModal from '@/Jetstream/DialogModal';
-import JetInput from '@/Jetstream/Input';
-import JetInputError from '@/Jetstream/InputError';
-import JetLabel from '@/Jetstream/Label';
-import JetSecondaryButton from '@/Jetstream/SecondaryButton';
-import JetSelect from '@/Jetstream/Select';
-import { VAceEditor } from 'vue3-ace-editor';
-
-export default defineComponent({
-    components: {
-        JetButton,
-        JetCheckbox,
-        JetDialogModal,
-        JetInput,
-        JetInputError,
-        JetLabel,
-        JetSecondaryButton,
-        JetSelect,
-        VAceEditor,
-    },
-
-    emits: [],
-
-    props: {
-        classes: {
-            default: ['inline-block'],
-        },
-        path: {
-            default: '/channels',
-        },
-        method: {
-            default: 'GET',
-        },
-        payload: {
-            default: '{}',
-        },
-        app: {
-            default: () => ({
-                id: 'app-id',
-                secret: 'app-secret',
-                key: 'app-key',
-                host: '127.0.0.1',
-                port: 6001,
-                tls: false,
-            }),
-        },
-    },
-
-    data() {
-        return {
-            showModal: false,
-            response: '',
-            form: this.$inertia.form({
-                path: '/channels',
-                method: 'GET',
-                payload: '{}',
-                app: JSON.stringify(this.app),
-            }),
-        };
-    },
-
-    mounted() {
-        if (this.path) {
-            this.form.path = this.path;
-        }
-
-        if (this.method) {
-            this.form.method = this.method;
-        }
-
-        if (this.payload) {
-            this.form.payload = typeof this.payload === 'string'
-                ? this.payload
-                : JSON.stringify(this.payload);
-        }
-    },
-
-    methods: {
-        closeModal() {
-            this.showModal = false;
-        },
-
-        sendRequest() {
-            this.response = null;
-
-            axios.post(route('proxy-http-request'), this.form.data()).then((response) => {
-                this.response = JSON.stringify(response.data, null, 4);
-            });
-        },
-    },
-});
-</script>
