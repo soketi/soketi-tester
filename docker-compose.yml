@@ -61,12 +61,11 @@ services:
             - '${FORWARD_SOKETI_PORT:-6001}:6001'
             - '${FORWARD_SOKETI_METRICS_PORT:-9601}:9601'
         environment:
-            SOKETI_DEBUG: 1
             SOKETI_METRICS: 1
         networks:
             - sail
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:6001/health"]
+            test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:6001"]
             retries: 3
             timeout: 5s
 networks:
