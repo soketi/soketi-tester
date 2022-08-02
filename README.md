@@ -16,16 +16,11 @@ Test your Soketi implementation with this awesome web tool. 🥰
 ```bash
 $ composer install --ignore-platform-reqs && \
     cp .env.example .env && \
-    php artisan key:generate && \
-    touch database/database.sqlite && \
-    php artisan migrate && \
+    ./sail up --wait -d && \
+    ./sail artisan migrate:fresh --seed && \
     npm install && \
     npm run dev
 ```
-
-## Running with Homestead or Sail
-
-If you are not having PHP 8.1+ or Redis installed, you can use [Laravel Homestead](https://laravel.com/docs/master/homestead#per-project-installation) or [Laravel Sail for Docker](https://laravel.com/docs/master/sail) as an alternative.
 
 ## 🐛 Testing
 
