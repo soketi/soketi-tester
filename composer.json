@@ -25,7 +25,7 @@
         "phpunit/phpunit": "^9.5.10",
         "psalm/plugin-laravel": "^2.0",
         "spatie/laravel-ignition": "^1.0",
-        "vimeo/psalm": "^4.23"
+        "vimeo/psalm": "^4.25"
     },
     "autoload": {
         "psr-4": {
