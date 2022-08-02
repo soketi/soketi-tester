@@ -21,7 +21,7 @@
         "friendsofphp/php-cs-fixer": "^3.8",
         "laravel/sail": "^1.0.1",
         "mockery/mockery": "^1.4.4",
-        "nunomaduro/collision": "^6.1",
+        "nunomaduro/collision": "^6.2",
         "phpunit/phpunit": "^9.5.10",
         "psalm/plugin-laravel": "^2.0",
         "spatie/laravel-ignition": "^1.0",
