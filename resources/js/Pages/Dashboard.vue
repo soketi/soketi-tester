@@ -93,6 +93,8 @@ const newConnection = (signin = false) => {
         signinSuccess: false,
     });
 
+    authenticateAsUser.value = null;
+
     let newConnIndex = newLength - 1;
     let newConn = connections.value[newConnIndex];
 
@@ -193,7 +195,7 @@ const isPresenceChannel = (channelName) => {
             </div>
         </template>
 
-        <div class="py-12 sm:px-6 lg:px-8 space-y-10">
+        <div class="py-3 sm:px-6 lg:px-8 space-y-5 md:space-y-10">
             <div class="flex flex-col space-y-5">
                 <div
                     v-for="(connection, i) in connections"
@@ -202,7 +204,7 @@ const isPresenceChannel = (channelName) => {
                 >
                     <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-4 space-y-3">
                         <!-- CONNECTION -->
-                        <div class="flex justify-between w-full">
+                        <div class="flex flex-col md:flex-row justify-between w-full space-y-2 md:space-y-0">
                             <div class="truncate">
                                 <div>
                                     {{ i + 1 }}.
@@ -309,17 +311,20 @@ const isPresenceChannel = (channelName) => {
             </div>
 
             <!-- NEW CONNECTIONS -->
-            <div class="flex space-x-4 divide-x-4 divide-solid">
+            <div class="flex flex-col md:flex-row px-2 md:px-0 space-y-4 md:space-y-0 md:space-x-4 divide-y-4 md:divide-y-0 md:divide-x-4 divide-solid">
                 <JetButton @click="newConnection">
                     New connection
                 </JetButton>
-                <div class="flex space-x-2 pl-4">
+                <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 py-4 md:py-0 md:pl-4">
                     <JetSelect
                         v-model="authenticateAsUser"
-                        :options="users.map(({ user_id, user_info }) => ({ label: `${user_info.name} (id: ${user_id})`, value: JSON.stringify(user_info) }))"
+                        :options="[
+                            { label: 'Select user', value: null },
+                            ...users.map(({ user_id, user_info }) => ({ label: `${user_info.name} (id: ${user_id})`, value: JSON.stringify(user_info) }))
+                        ]"
                     />
                     <JetButton @click="newConnection(true)">
-                        New connection (signin)
+                        New connection with Signin
                     </JetButton>
                 </div>
             </div>

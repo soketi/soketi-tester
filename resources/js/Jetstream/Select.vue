@@ -1,3 +1,16 @@
+<script setup>
+defineProps({
+    modelValue: {
+        //
+    },
+    options: {
+        default: () => [],
+    },
+});
+
+defineEmits(['update:modelValue']);
+</script>
+
 <template>
     <select
         :value="modelValue"
@@ -14,26 +27,3 @@
         </option>
     </select>
 </template>
-
-<script>
-import { defineComponent } from 'vue'
-
-export default defineComponent({
-    props: {
-        modelValue: {
-            //
-        },
-        options: {
-            default: () => [],
-        },
-    },
-
-    emits: ['update:modelValue'],
-
-    methods: {
-        focus() {
-            this.$refs.input.focus()
-        }
-    }
-})
-</script>

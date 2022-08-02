@@ -62,6 +62,7 @@ services:
             - '${FORWARD_SOKETI_METRICS_PORT:-9601}:9601'
         environment:
             SOKETI_METRICS: 1
+            SOKETI_DEFAULT_APP_ENABLE_CLIENT_MESSAGES: 1
         networks:
             - sail
         healthcheck:

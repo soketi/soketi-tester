@@ -32,7 +32,7 @@ const props = defineProps({
     },
 });
 
-defineEmits(['onClientMessage']);
+const emit = defineEmits(['onClientMessage']);
 
 let showModal = ref(false);
 let sendAsClientMessage = ref(false);
