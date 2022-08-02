@@ -43,6 +43,14 @@ jobs:
           path: ~/.composer/cache/files
           key: npm-${{ hashFiles('package.json') }}
 
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+        name: Cache Docker layers
+        continue-on-error: true
+        with:
+          key: docker-{hash}
+          restore-keys: |
+            docker-
+
       - name: Prepare the project
         run: |
           cp .env.example .env
