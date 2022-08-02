@@ -195,7 +195,7 @@ const isPresenceChannel = (channelName) => {
             </div>
         </template>
 
-        <div class="py-3 sm:px-6 lg:px-8 space-y-5 md:space-y-10">
+        <div class="py-3 pt-6 sm:px-6 lg:px-8 space-y-5 md:space-y-10">
             <div class="flex flex-col space-y-5">
                 <div
                     v-for="(connection, i) in connections"
