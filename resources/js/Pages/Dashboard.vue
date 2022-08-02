@@ -83,7 +83,7 @@ const newConnection = (signin = false) => {
         statuses: [],
         status: 'pending',
         signin,
-        authenticateAsUser,
+        authenticateAsUser: authenticateAsUser.value,
         channels: {},
         newChannelForm: useForm({
             name: '',
@@ -138,11 +138,11 @@ const subscribeToChannel = (connection) => {
         return;
     }
 
-    authorizePresenceChannelAsUser = connection.newChannelForm.user_info;
+    authorizePresenceChannelAsUser.value = connection.newChannelForm.user_info;
 
     connection.channels[channelName] = {
         messages: [],
-        user_info: authorizePresenceChannelAsUser,
+        user_info: authorizePresenceChannelAsUser.value,
     };
 
     connection.pusher.subscribe(channelName).bind_global((event, data) => {
@@ -193,8 +193,8 @@ const isPresenceChannel = (channelName) => {
             </div>
         </template>
 
-        <div class="py-12 sm:px-6 lg:px-8 space-y-3">
-            <div class="flex flex-col space-y-3">
+        <div class="py-12 sm:px-6 lg:px-8 space-y-10">
+            <div class="flex flex-col space-y-5">
                 <div
                     v-for="(connection, i) in connections"
                     :key="i"
@@ -213,7 +213,7 @@ const isPresenceChannel = (channelName) => {
                                     </span>
                                 </div>
                                 <message-modal
-                                    v-if="connection.signin"
+                                    v-if="connection.authenticateAsUser"
                                     :message="JSON.stringify(JSON.parse(connection.authenticateAsUser), null, 4)"
                                 >
                                     <span class="cursor-pointer hover:underline">
@@ -260,25 +260,29 @@ const isPresenceChannel = (channelName) => {
                                 <!-- CHANNEL TOP -->
                                 <div>
                                     Channel: <span class="font-bold">{{ channelName }}</span>
+                                </div>
+                                <div>
                                     <button
-                                        class="text-red-500 underline ml-2"
+                                        class="text-red-400 hover:text-red-500 underline"
                                         @click="unsubscribeFromChannel(connection, channelName)"
                                     >
                                         Unsubscribe
                                     </button>
+                                    |
                                     <button
-                                        class="underline ml-2"
+                                        class="underline text-soketi2-400 hover:text-soketi2-500 ml-1"
                                         @click="resubscribeToChannel(connection, channelName)"
                                     >
                                         Resubscribe
                                     </button>
+                                    |
                                     <send-message-modal
                                         :connection="connection"
                                         :channel="channelName"
                                         :app="app"
                                         @on-client-message="onClientMessage"
                                     >
-                                        <button class="underline ml-2">
+                                        <button class="underline text-soketi2-400 hover:text-soketi2-500 ml-1">
                                             Send message
                                         </button>
                                     </send-message-modal>
